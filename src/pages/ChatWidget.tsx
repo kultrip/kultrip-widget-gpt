@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Send, MapPin, Sparkles, Download, Share2, Mail, RefreshCw } from "lucide-react";
+import { Send, MapPin, Sparkles, Download, Share2, Mail, RefreshCw, CheckCircle } from "lucide-react";
 import ActivityCard from "@/components/chat/ActivityCard";
 import MapComponent from "@/components/chat/MapComponent";
 import { PaymentModal } from "@/components/chat/PaymentModal";
@@ -14,6 +14,7 @@ type Message = {
   content: string;
   locations?: StoryLocation[];
   showPreferences?: boolean;
+  showEmailCapture?: boolean;
 };
 
 const PREFERENCE_OPTIONS = [
@@ -39,6 +40,10 @@ const ChatWidget = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showLanding, setShowLanding] = useState(true);
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [emailData, setEmailData] = useState({ name: "", email: "" });
+  const [isEmailSending, setIsEmailSending] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   const handleFirstSubmit = async (message: string) => {
     setShowLanding(false);
@@ -51,17 +56,23 @@ const ChatWidget = () => {
     try {
       const response = await getChatResponse(newMessages, currentParams);
       
-      // Check if we need to show preferences
+      // Check if we need to show preferences or email capture
       const shouldShowPreferences = response.parameters.destination && 
                                    response.parameters.story && 
                                    !response.parameters.preferences;
+      
+      const shouldShowEmailCapture = response.locations && 
+                                     response.locations.length > 0 && 
+                                     response.parameters.preferences && 
+                                     response.parameters.preferences.length > 0;
       
       // Add assistant response
       const assistantMessage: Message = {
         role: "assistant",
         content: response.message,
         locations: response.locations,
-        showPreferences: shouldShowPreferences
+        showPreferences: shouldShowPreferences,
+        showEmailCapture: shouldShowEmailCapture
       };
       
       setMessages(prev => [...prev, assistantMessage]);
@@ -93,17 +104,23 @@ const ChatWidget = () => {
     try {
       const response = await getChatResponse(newMessages, currentParams);
       
-      // Check if we need to show preferences
+      // Check if we need to show preferences or email capture
       const shouldShowPreferences = response.parameters.destination && 
                                    response.parameters.story && 
                                    !response.parameters.preferences;
+      
+      const shouldShowEmailCapture = response.locations && 
+                                     response.locations.length > 0 && 
+                                     response.parameters.preferences && 
+                                     response.parameters.preferences.length > 0;
       
       // Add assistant response
       const assistantMessage: Message = {
         role: "assistant",
         content: response.message,
         locations: response.locations,
-        showPreferences: shouldShowPreferences
+        showPreferences: shouldShowPreferences,
+        showEmailCapture: shouldShowEmailCapture
       };
       
       setMessages(prev => [...prev, assistantMessage]);
@@ -148,11 +165,17 @@ const ChatWidget = () => {
     try {
       const response = await getChatResponse(newMessages, updatedParams);
       
+      // Check if conversation is complete and should show email capture
+      const shouldShowEmailCapture = response.locations && 
+                                     response.locations.length > 0 && 
+                                     selectedPreferences.length > 0;
+      
       // Add assistant response
       const assistantMessage: Message = {
         role: "assistant",
         content: response.message,
-        locations: response.locations
+        locations: response.locations,
+        showEmailCapture: shouldShowEmailCapture
       };
       
       setMessages(prev => [...prev, assistantMessage]);
@@ -168,6 +191,55 @@ const ChatWidget = () => {
     }
 
     setIsLoading(false);
+  };
+
+  const handleEmailRequest = () => {
+    setShowEmailForm(true);
+  };
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailData.name.trim() || !emailData.email.trim()) return;
+
+    setIsEmailSending(true);
+
+    try {
+      // TODO: Replace with actual API call
+      // const response = await sendTravelGuideEmail({
+      //   name: emailData.name,
+      //   email: emailData.email,
+      //   travelParams: currentParams,
+      //   messages: messages
+      // });
+
+      // Simulate API call for now
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      setEmailSent(true);
+      setShowEmailForm(false);
+      
+      // Add success message to chat
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: `Perfect! I've sent your personalized travel guide to ${emailData.email}. Check your inbox for your ${currentParams.destination} adventure inspired by ${currentParams.story}! ✈️📧`
+      }]);
+
+    } catch (error) {
+      console.error('Failed to send email:', error);
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: "I apologize, but I'm having trouble sending the email right now. Please try again in a moment."
+      }]);
+    }
+
+    setIsEmailSending(false);
+  };
+
+  const handleEmailDecline = () => {
+    setMessages(prev => [...prev, {
+      role: "assistant",
+      content: "No problem! Feel free to continue planning your journey or start a new conversation anytime. Safe travels! ✈️"
+    }]);
   };
 
   const renderLandingScreen = () => (
@@ -296,6 +368,35 @@ const ChatWidget = () => {
             </Button>
           </div>
         )}
+
+        {/* Show email capture button if conversation is complete */}
+        {message.showEmailCapture && !emailSent && (
+          <div className="bg-gradient-to-r from-purple-50 to-orange-50 rounded-lg p-6 mr-12 border-2 border-purple-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-semibold text-gray-900 mb-2">🎉 Your travel guide is ready!</h4>
+                <p className="text-gray-600 mb-4">Would you like to receive a detailed travel guide with all recommendations via email?</p>
+              </div>
+              <Mail className="w-8 h-8 text-purple-600" />
+            </div>
+            <div className="flex gap-3">
+              <Button
+                onClick={handleEmailRequest}
+                className="bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-700 hover:to-orange-600 text-white"
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                Yes, send me the guide!
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleEmailDecline}
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                No, thanks
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -334,6 +435,9 @@ const ChatWidget = () => {
                   setCurrentParams({});
                   setSelectedPreferences([]);
                   setInput("");
+                  setShowEmailForm(false);
+                  setEmailData({ name: "", email: "" });
+                  setEmailSent(false);
                 }}
                 className="text-gray-600 hover:text-gray-900"
               >
@@ -386,6 +490,84 @@ const ChatWidget = () => {
             </Card>
           </div>
         </div>
+
+        {/* Email Form Modal */}
+        {showEmailForm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl">
+              <div className="text-center mb-6">
+                <Mail className="w-12 h-12 text-purple-600 mx-auto mb-4" />
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Get Your Travel Guide</h3>
+                <p className="text-gray-600">
+                  Enter your details to receive a personalized travel guide for your {currentParams.destination} adventure!
+                </p>
+              </div>
+
+              <form onSubmit={handleEmailSubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                    Your Name
+                  </label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Enter your name"
+                    value={emailData.name}
+                    onChange={(e) => setEmailData(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full"
+                    disabled={isEmailSending}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address
+                  </label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={emailData.email}
+                    onChange={(e) => setEmailData(prev => ({ ...prev, email: e.target.value }))}
+                    className="w-full"
+                    disabled={isEmailSending}
+                    required
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    type="submit"
+                    disabled={isEmailSending || !emailData.name.trim() || !emailData.email.trim()}
+                    className="flex-1 bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-700 hover:to-orange-600 text-white"
+                  >
+                    {isEmailSending ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4 mr-2" />
+                        Send Guide
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowEmailForm(false)}
+                    disabled={isEmailSending}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         <PaymentModal 
           isOpen={showPaymentModal} 

@@ -2,6 +2,15 @@
 
 A standalone travel planning widget that can be embedded in any website.
 
+## ✨ Features
+
+- **Beautiful Landing Screen**: Purple-orange gradient with centered input box
+- **Story-inspired Travel Planning**: AI-powered recommendations based on books, movies, and TV shows
+- **Clickable Preferences**: Interactive buttons for selecting travel preferences
+- **Email Guide Delivery**: Capture user details and send personalized travel guides via email
+- **Responsive Design**: Works seamlessly on mobile and desktop
+- **Self-contained**: No external dependencies needed on the host page
+
 ## Building the Widget
 
 ```bash
@@ -71,6 +80,41 @@ Add this to your HTML page:
 - Recommended minimum height: 600px
 - The widget will adapt to the container's width
 - Position should be relative or absolute for proper layout
+
+## Email API Integration
+
+The widget includes email capture functionality. To implement the actual email sending:
+
+1. **Locate the TODO in ChatWidget.tsx** (line ~208):
+```typescript
+// TODO: Replace with actual API call
+// const response = await sendTravelGuideEmail({
+//   name: emailData.name,
+//   email: emailData.email,
+//   travelParams: currentParams,
+//   messages: messages
+// });
+```
+
+2. **Implement your email service**:
+```typescript
+const sendTravelGuideEmail = async (data) => {
+  const response = await fetch('https://your-api.com/send-travel-guide', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data)
+  });
+  return response.json();
+};
+```
+
+3. **Available data includes**:
+   - `name`: User's name
+   - `email`: User's email address
+   - `travelParams`: All travel parameters (destination, story, preferences, etc.)
+   - `messages`: Complete conversation history
 
 ## Environment Variables
 
