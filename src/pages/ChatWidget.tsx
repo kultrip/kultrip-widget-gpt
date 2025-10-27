@@ -13,7 +13,23 @@ type Message = {
   role: "assistant" | "user";
   content: string;
   locations?: StoryLocation[];
+  showPreferences?: boolean;
 };
+
+const PREFERENCE_OPTIONS = [
+  "Museums and History",
+  "Food and Restaurants", 
+  "Arts and Culture",
+  "Nature and Outdoors",
+  "Photography Spots",
+  "Nightlife",
+  "Shopping",
+  "Wine Tastings",
+  "Budget-friendly",
+  "Luxury Experiences",
+  "Family-friendly",
+  "Romantic Experiences"
+];
 
 const ChatWidget = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -21,14 +37,47 @@ const ChatWidget = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentParams, setCurrentParams] = useState<TravelParameters>({});
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showLanding, setShowLanding] = useState(true);
+  const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
 
-  // Initialize with welcome message
-  useEffect(() => {
-    setMessages([{
-      role: "assistant",
-      content: "Welcome to Kultrip! ✈️ Let's create your perfect story-inspired travel experience. Where would you like to go, or do you have a favorite story that could guide your journey?",
-    }]);
-  }, []);
+  const handleFirstSubmit = async (message: string) => {
+    setShowLanding(false);
+    setIsLoading(true);
+
+    // Add user message to chat
+    const newMessages = [{ role: "user" as const, content: message }];
+    setMessages(newMessages);
+
+    try {
+      const response = await getChatResponse(newMessages, currentParams);
+      
+      // Check if we need to show preferences
+      const shouldShowPreferences = response.parameters.destination && 
+                                   response.parameters.story && 
+                                   !response.parameters.preferences;
+      
+      // Add assistant response
+      const assistantMessage: Message = {
+        role: "assistant",
+        content: response.message,
+        locations: response.locations,
+        showPreferences: shouldShowPreferences
+      };
+      
+      setMessages(prev => [...prev, assistantMessage]);
+      
+      // Update parameters
+      setCurrentParams(response.parameters);
+      
+    } catch (error) {
+      setMessages([{
+        role: "assistant",
+        content: "I apologize, but I'm having trouble connecting right now. Please try again in a moment."
+      }]);
+    }
+
+    setIsLoading(false);
+  };
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -43,6 +92,61 @@ const ChatWidget = () => {
 
     try {
       const response = await getChatResponse(newMessages, currentParams);
+      
+      // Check if we need to show preferences
+      const shouldShowPreferences = response.parameters.destination && 
+                                   response.parameters.story && 
+                                   !response.parameters.preferences;
+      
+      // Add assistant response
+      const assistantMessage: Message = {
+        role: "assistant",
+        content: response.message,
+        locations: response.locations,
+        showPreferences: shouldShowPreferences
+      };
+      
+      setMessages(prev => [...prev, assistantMessage]);
+      
+      // Update parameters
+      setCurrentParams(response.parameters);
+      
+    } catch (error) {
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: "I apologize, but I'm having trouble connecting right now. Please try again in a moment."
+      }]);
+    }
+
+    setIsLoading(false);
+  };
+
+  const handlePreferenceToggle = (preference: string) => {
+    setSelectedPreferences(prev => {
+      if (prev.includes(preference)) {
+        return prev.filter(p => p !== preference);
+      } else {
+        return [...prev, preference];
+      }
+    });
+  };
+
+  const handlePreferencesSubmit = async () => {
+    if (selectedPreferences.length === 0) return;
+
+    setIsLoading(true);
+    
+    // Add user message with preferences
+    const preferencesMessage = `My preferences are: ${selectedPreferences.join(", ")}`;
+    const newMessages = [...messages, { role: "user" as const, content: preferencesMessage }];
+    setMessages(newMessages);
+
+    // Update current params with preferences
+    const updatedParams = { ...currentParams, preferences: selectedPreferences };
+    setCurrentParams(updatedParams);
+
+    try {
+      const response = await getChatResponse(newMessages, updatedParams);
       
       // Add assistant response
       const assistantMessage: Message = {
@@ -66,40 +170,143 @@ const ChatWidget = () => {
     setIsLoading(false);
   };
 
+  const renderLandingScreen = () => (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 via-blue-600 to-orange-500">
+      <div className="container mx-auto px-6 py-32 text-center">
+        <div className="max-w-4xl mx-auto space-y-10">
+          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white px-4 py-2 rounded-full border border-white/20 mb-4">
+            <Sparkles className="h-4 w-4" />
+            <span className="text-sm font-medium">AI-Powered Story Travel</span>
+          </div>
+          
+          <h1 className="text-4xl md:text-6xl font-bold text-white leading-tight">
+            Travel like in your
+            <span className="block mt-2">
+              favorite story
+            </span>
+          </h1>
+          
+          <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto">
+            Design your perfect journey inspired by your favorite books, movies, and TV shows
+          </p>
+
+          {/* Chat-like Input Box */}
+          <div className="max-w-3xl mx-auto mt-12">
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (input.trim()) {
+                handleFirstSubmit(input);
+                setInput("");
+              }
+            }}>
+              <div className="bg-white/95 backdrop-blur-md rounded-3xl p-6 shadow-2xl hover:shadow-3xl transition-all">
+                <div className="flex items-center gap-4">
+                  <Input
+                    type="text"
+                    placeholder="Ask KultripGPT to create your story-inspired journey..."
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    className="flex-1 border-0 bg-transparent text-lg focus-visible:ring-0 focus-visible:ring-offset-0"
+                    disabled={isLoading}
+                  />
+                  <Button 
+                    type="submit"
+                    disabled={isLoading || !input.trim()}
+                    className="bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-700 hover:to-orange-600 text-white px-8 py-2 rounded-2xl font-medium"
+                  >
+                    {isLoading ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Start Journey
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderMessage = (message: Message, index: number) => {
     return (
-      <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-        <div className={`max-w-4xl rounded-lg p-4 shadow-sm border ${
-          message.role === 'user' 
-            ? 'bg-blue-500 text-white ml-12' 
-            : 'bg-white text-gray-800 mr-12'
-        }`}>
-          <p className="whitespace-pre-wrap">{message.content}</p>
-          
-          {/* Show locations if available */}
-          {message.locations && message.locations.length > 0 && (
-            <div className="mt-4 space-y-3">
-              <h4 className="font-semibold text-gray-900">Recommended Locations:</h4>
-              <div className="grid gap-3">
-                {message.locations.map((location, locationIndex) => (
-                  <div key={locationIndex} className="p-3 bg-gray-50 rounded-lg">
-                    <h5 className="font-medium">{location.name}</h5>
-                    <p className="text-sm text-gray-600">{location.description}</p>
-                    <p className="text-xs text-gray-500 mt-1">Type: {location.type}</p>
-                  </div>
-                ))}
-              </div>
-              {message.locations.length > 0 && (
-                <div className="mt-4">
-                  <MapComponent locations={message.locations} />
+      <div key={index} className="space-y-4">
+        <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+          <div className={`max-w-4xl rounded-lg p-4 shadow-sm border ${
+            message.role === 'user' 
+              ? 'bg-blue-500 text-white ml-12' 
+              : 'bg-white text-gray-800 mr-12'
+          }`}>
+            <p className="whitespace-pre-wrap">{message.content}</p>
+            
+            {/* Show locations if available */}
+            {message.locations && message.locations.length > 0 && (
+              <div className="mt-4 space-y-3">
+                <h4 className="font-semibold text-gray-900">Recommended Locations:</h4>
+                <div className="grid gap-3">
+                  {message.locations.map((location, locationIndex) => (
+                    <div key={locationIndex} className="p-3 bg-gray-50 rounded-lg">
+                      <h5 className="font-medium">{location.name}</h5>
+                      <p className="text-sm text-gray-600">{location.description}</p>
+                      <p className="text-xs text-gray-500 mt-1">Type: {location.type}</p>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
-          )}
+                {message.locations.length > 0 && (
+                  <div className="mt-4">
+                    <MapComponent locations={message.locations} />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Show preference buttons if needed */}
+        {message.showPreferences && (
+          <div className="bg-gray-50 rounded-lg p-6 mr-12">
+            <h4 className="font-semibold text-gray-900 mb-4">What interests you most? (Select all that apply)</h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+              {PREFERENCE_OPTIONS.map((preference) => (
+                <Button
+                  key={preference}
+                  variant={selectedPreferences.includes(preference) ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handlePreferenceToggle(preference)}
+                  className={`text-left justify-start ${
+                    selectedPreferences.includes(preference) 
+                      ? "bg-gradient-to-r from-purple-600 to-orange-500 text-white" 
+                      : "hover:bg-gray-100"
+                  }`}
+                >
+                  {preference}
+                </Button>
+              ))}
+            </div>
+            <Button
+              onClick={handlePreferencesSubmit}
+              disabled={selectedPreferences.length === 0 || isLoading}
+              className="bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-700 hover:to-orange-600 text-white"
+            >
+              Continue with Selected Preferences ({selectedPreferences.length})
+            </Button>
+          </div>
+        )}
       </div>
     );
   };
+
+  if (showLanding) {
+    return (
+      <PageTransition>
+        {renderLandingScreen()}
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition>
@@ -108,7 +315,7 @@ const ChatWidget = () => {
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-orange-500 rounded-lg flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -122,11 +329,11 @@ const ChatWidget = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  setMessages([{
-                    role: "assistant",
-                    content: "Welcome back to Kultrip! ✈️ Let's create your perfect story-inspired travel experience. Where would you like to go, or do you have a favorite story that could guide your journey?",
-                  }]);
+                  setShowLanding(true);
+                  setMessages([]);
                   setCurrentParams({});
+                  setSelectedPreferences([]);
+                  setInput("");
                 }}
                 className="text-gray-600 hover:text-gray-900"
               >
@@ -162,15 +369,15 @@ const ChatWidget = () => {
                   <Input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Tell me about your dream destination or favorite story..."
+                    placeholder="Continue your conversation..."
                     onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                    className="flex-1 bg-white border-gray-200 focus:border-blue-500 focus:ring-blue-500"
+                    className="flex-1 bg-white border-gray-200 focus:border-purple-500 focus:ring-purple-500"
                     disabled={isLoading}
                   />
                   <Button 
                     onClick={handleSend} 
                     disabled={isLoading || !input.trim()}
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6"
+                    className="bg-gradient-to-r from-purple-600 to-orange-500 hover:from-purple-700 hover:to-orange-600 text-white px-6"
                   >
                     <Send className="w-4 h-4" />
                   </Button>
