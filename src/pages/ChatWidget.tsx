@@ -32,7 +32,13 @@ const PREFERENCE_OPTIONS = [
   "Romantic Experiences"
 ];
 
-const ChatWidget = () => {
+interface ChatWidgetProps {
+  userId?: string;
+}
+
+const API_URL = "https://kultrip-api-vzkhjko4aa-no.a.run.app/api";
+
+const ChatWidget = ({ userId }: ChatWidgetProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -44,6 +50,15 @@ const ChatWidget = () => {
   const [emailData, setEmailData] = useState({ name: "", email: "" });
   const [isEmailSending, setIsEmailSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+
+  // Get browser language or default to English
+  const getBrowserLanguage = (): string => {
+    if (typeof window !== 'undefined' && window.navigator) {
+      const language = window.navigator.language || (window.navigator as any).userLanguage;
+      return language ? language.split('-')[0] : 'en';
+    }
+    return 'en';
+  };
 
   const handleFirstSubmit = async (message: string) => {
     setShowLanding(false);
@@ -197,23 +212,84 @@ const ChatWidget = () => {
     setShowEmailForm(true);
   };
 
+  const sendTravelGuideEmail = async () => {
+    const language = getBrowserLanguage();
+    
+    // Get itinerary data from the last message with locations
+    const messagesWithLocations = messages.filter(msg => msg.locations && msg.locations.length > 0);
+    const lastMessageWithLocations = messagesWithLocations[messagesWithLocations.length - 1];
+    const itineraryData = lastMessageWithLocations?.locations || [];
+    
+    const payload = {
+      userId: userId || 'default',
+      destination: currentParams.destination || '',
+      inspiration: currentParams.story || '',
+      travelers: currentParams.travelerType || '',
+      duration: currentParams.duration || 0,
+      interests: currentParams.preferences || [],
+      language: language,
+      customer_email: emailData.email,
+      itinerary_data: itineraryData  // Added the required itinerary data
+    };
+
+    console.log('Current params:', currentParams);
+    console.log('Email data:', emailData);
+    console.log('Sending API request with payload:', payload);
+    console.log('API URL:', `${API_URL}/send-travel-guide`);
+
+    const response = await fetch(`${API_URL}/send-travel-guide`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload)
+    });
+
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
+
+    if (!response.ok) {
+      let errorText = '';
+      try {
+        errorText = await response.text();
+        console.log('Error response body:', errorText);
+      } catch (e) {
+        console.log('Could not read error response body');
+      }
+      throw new Error(`API request failed with status ${response.status}. Response: ${errorText}`);
+    }
+
+    return response.json();
+  };
+
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!emailData.name.trim() || !emailData.email.trim()) return;
 
+    // Validate required data
+    if (!currentParams.destination) {
+      console.error('Missing destination');
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: "Sorry, it seems we're missing some travel information. Please restart the conversation."
+      }]);
+      return;
+    }
+
+    if (!userId) {
+      console.error('Missing userId');
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: "Configuration error: No agency ID provided. Please contact support."
+      }]);
+      return;
+    }
+
     setIsEmailSending(true);
 
     try {
-      // TODO: Replace with actual API call
-      // const response = await sendTravelGuideEmail({
-      //   name: emailData.name,
-      //   email: emailData.email,
-      //   travelParams: currentParams,
-      //   messages: messages
-      // });
-
-      // Simulate API call for now
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await sendTravelGuideEmail();
+      console.log('API response:', response);
       
       setEmailSent(true);
       setShowEmailForm(false);
@@ -226,9 +302,10 @@ const ChatWidget = () => {
 
     } catch (error) {
       console.error('Failed to send email:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setMessages(prev => [...prev, {
         role: "assistant",
-        content: "I apologize, but I'm having trouble sending the email right now. Please try again in a moment."
+        content: `I apologize, but I'm having trouble sending the email right now. Error: ${errorMessage}. Please try again in a moment.`
       }]);
     }
 

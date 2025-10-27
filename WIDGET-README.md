@@ -64,7 +64,7 @@ Add this to your HTML page:
     window.addEventListener('load', function() {
         if (window.KultripWidget) {
             const widget = window.KultripWidget.init('kultrip-widget', {
-                // Add any configuration options here
+                userId: 'your-agency-id'  // Required for email functionality
             });
             
             // Widget instance methods
@@ -74,6 +74,10 @@ Add this to your HTML page:
 </script>
 ```
 
+### 4. Required Configuration
+
+**userId Parameter**: This is required for the email functionality to work properly. Replace `'your-agency-id'` with your actual agency identifier from Kultrip.
+
 ## Widget Container Requirements
 
 - The container div must have an ID
@@ -81,40 +85,43 @@ Add this to your HTML page:
 - The widget will adapt to the container's width
 - Position should be relative or absolute for proper layout
 
-## Email API Integration
+## API Integration
 
-The widget includes email capture functionality. To implement the actual email sending:
+The widget automatically integrates with the Kultrip API to send travel guides via email.
 
-1. **Locate the TODO in ChatWidget.tsx** (line ~208):
-```typescript
-// TODO: Replace with actual API call
-// const response = await sendTravelGuideEmail({
-//   name: emailData.name,
-//   email: emailData.email,
-//   travelParams: currentParams,
-//   messages: messages
-// });
+### API Endpoint Used
+
+- **URL**: `https://kultrip-api-vzkhjko4aa-no.a.run.app/api/send-travel-guide`
+- **Method**: POST
+- **Content-Type**: application/json
+
+### Data Sent to API
+
+When a user requests an email guide, the widget sends:
+
+```json
+{
+  "userId": "your-agency-id",
+  "destination": "Paris",
+  "inspiration": "Emily in Paris",
+  "travelers": "couple",
+  "duration": 5,
+  "interests": ["Museums and History", "Food and Restaurants"],
+  "language": "en",
+  "email": "user@example.com"
+}
 ```
 
-2. **Implement your email service**:
-```typescript
-const sendTravelGuideEmail = async (data) => {
-  const response = await fetch('https://your-api.com/send-travel-guide', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data)
-  });
-  return response.json();
-};
-```
+### Parameter Details
 
-3. **Available data includes**:
-   - `name`: User's name
-   - `email`: User's email address
-   - `travelParams`: All travel parameters (destination, story, preferences, etc.)
-   - `messages`: Complete conversation history
+- **userId**: Agency ID passed during widget initialization
+- **destination**: Extracted from user conversation
+- **inspiration**: Story/book/movie mentioned by user
+- **travelers**: Type of travelers (solo, couple, friends, family)
+- **duration**: Number of days for the trip
+- **interests**: Selected preferences from the clickable buttons
+- **language**: Auto-detected from browser (defaults to 'en')
+- **email**: User's email address from the form
 
 ## Environment Variables
 

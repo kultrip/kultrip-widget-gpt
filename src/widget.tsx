@@ -9,14 +9,18 @@ import "./index.css";
 
 const queryClient = new QueryClient();
 
-const WidgetApp = () => {
+interface WidgetAppProps {
+  userId?: string;
+}
+
+const WidgetApp = ({ userId }: WidgetAppProps) => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <div style={{ width: '100%', height: '100%' }}>
-          <ChatWidget />
+          <ChatWidget userId={userId} />
         </div>
       </TooltipProvider>
     </QueryClientProvider>
@@ -37,7 +41,7 @@ const initKultripWidget = (containerId: string, options: any = {}) => {
   if (!container.style.position) container.style.position = 'relative';
 
   const root = createRoot(container);
-  root.render(<WidgetApp />);
+  root.render(<WidgetApp userId={options.userId} />);
   
   return {
     destroy: () => root.unmount()

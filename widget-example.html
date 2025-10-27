@@ -71,13 +71,33 @@
 &lt;div id="kultrip-widget" style="width: 100%; height: 600px;"&gt;&lt;/div&gt;
             </div>
             
-            <p>3. Initialize the widget:</p>
+            <p>3. Initialize the widget with your agency userId:</p>
             <div class="code-block">
 &lt;script&gt;
     // Wait for the widget to load
     window.addEventListener('load', function() {
         if (window.KultripWidget) {
-            window.KultripWidget.init('kultrip-widget');
+            // Replace 'your-agency-id' with your actual agency ID
+            window.KultripWidget.init('kultrip-widget', {
+                userId: 'your-agency-id'
+            });
+        }
+    });
+&lt;/script&gt;
+            </div>
+            
+            <p><strong>Advanced usage with options:</strong></p>
+            <div class="code-block">
+&lt;script&gt;
+    window.addEventListener('load', function() {
+        if (window.KultripWidget) {
+            const widget = window.KultripWidget.init('kultrip-widget', {
+                userId: 'agency-123',  // Required: Your agency ID
+                // Add more configuration options here as needed
+            });
+            
+            // Widget methods available:
+            // widget.destroy() - Remove the widget
         }
     });
 &lt;/script&gt;
@@ -98,7 +118,10 @@
         // Wait for the widget to load
         window.addEventListener('load', function() {
             if (window.KultripWidget) {
-                const widget = window.KultripWidget.init('kultrip-widget');
+                // Using your actual Supabase agency ID
+                const widget = window.KultripWidget.init('kultrip-widget', {
+                    userId: '386cf448-2456-481e-835b-6f2ca873d7eb'
+                });
                 console.log('Kultrip Widget initialized successfully');
             } else {
                 console.error('Kultrip Widget not found');
