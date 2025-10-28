@@ -294,7 +294,7 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
     console.log('💾 Saving lead to Supabase:', leadData);
 
     // Import the saveLead function dynamically to avoid circular dependencies
-    const { saveLead, sendAgencyNotification } = await import('@/services/supabase');
+    const { saveLead } = await import('@/services/supabase');
     
     // Save lead to Supabase
     console.log('🔍 About to save lead with data:', leadData);
@@ -303,17 +303,6 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
     
     if (saveResult.success) {
       console.log('✅ Lead saved to Supabase successfully with ID:', saveResult.id);
-      
-      // Send agency notification email
-      console.log('📧 Sending agency notification...');
-      const notificationResult = await sendAgencyNotification(leadData);
-      console.log('📧 Agency notification result:', notificationResult);
-      
-      if (notificationResult.success) {
-        console.log('✅ Agency notification sent successfully');
-      } else {
-        console.warn('⚠️ Failed to send agency notification:', notificationResult.error);
-      }
     } else {
       console.error('❌ Failed to save lead to Supabase:', saveResult.error);
       console.error('❌ Full save result:', saveResult);
