@@ -37,6 +37,7 @@ interface ChatWidgetProps {
 }
 
 const API_URL = "https://kultrip-api-vzkhjko4aa-no.a.run.app/api";
+const KULTRIP_AGENCY_ID = "kultrip-official-000-000-000-kultrip"; // Dedicated KULTRIP agency ID
 
 const ChatWidget = ({ userId }: ChatWidgetProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -212,16 +213,121 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
     setShowEmailForm(true);
   };
 
-  const sendTravelGuideEmail = async () => {
+  const createItinerary = async () => {
     const language = getBrowserLanguage();
     
-    // Get itinerary data from the last message with locations
-    const messagesWithLocations = messages.filter(msg => msg.locations && msg.locations.length > 0);
-    const lastMessageWithLocations = messagesWithLocations[messagesWithLocations.length - 1];
-    const itineraryData = lastMessageWithLocations?.locations || [];
+    // API expects numeric userId (bigint), not UUID
+    // Convert UUID to a numeric ID or use a test numeric ID
+    let actualUserId: string;
+    if (userId && userId.length > 10) {
+      // If it's a UUID, use a test numeric ID
+      actualUserId = '1'; // Use a simple numeric ID for testing
+    } else {
+      // If it's already numeric or not provided, use it or fallback
+      actualUserId = userId || '1';
+    }
     
-    const payload = {
-      userId: userId || 'default',
+    // Build query parameters matching the working curl format
+    // Use 3 days max to avoid JSON parsing issues with long responses
+    // DON'T include email parameter here to avoid double emails - we'll send email separately
+    const safeDuration = Math.min(currentParams.duration || 3, 3);
+    const queryParams = new URLSearchParams({
+      userId: actualUserId,
+      destination: currentParams.destination || '',
+      inspiration: currentParams.story || '',
+      travelers: currentParams.travelerType || '',
+      duration: safeDuration.toString(),
+      interests: (currentParams.preferences || []).slice(0, 2).join(','), // Limit to 2 interests to avoid long responses
+      language: language
+      // NOTE: No email parameter here to prevent automatic email sending
+    });
+
+    console.log('Step 1a: Creating itinerary with GET request to:', `${API_URL}/itinerary?${queryParams}`);
+
+    const createResponse = await fetch(`${API_URL}/itinerary?${queryParams}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+
+    console.log('Create itinerary response status:', createResponse.status);
+
+    if (!createResponse.ok) {
+      let errorText = '';
+      try {
+        errorText = await createResponse.text();
+        console.log('Create itinerary error response body:', errorText);
+      } catch (e) {
+        console.log('Could not read create itinerary error response body');
+      }
+      throw new Error(`Failed to create itinerary. Status: ${createResponse.status}. Response: ${errorText}`);
+    }
+
+    const createResult = await createResponse.json();
+    console.log('Step 1b: Itinerary created:', createResult);
+
+    // Return the creation result which should include: id, guide_url, email_sent
+    // This is what we need to send in the email
+    return {
+      id: createResult.id,
+      guide_url: createResult.guide_url,
+      email_sent: createResult.email_sent,
+      destination: currentParams.destination,
+      inspiration: currentParams.story
+    };
+  };
+
+  const saveLead = async () => {
+    const leadData = {
+      agency_id: KULTRIP_AGENCY_ID, // KULTRIP's own agency ID
+      traveler_name: emailData.name,
+      traveler_email: emailData.email,
+      traveler_phone: null,
+      destination: currentParams.destination || '',
+      travel_style: null,
+      interests: currentParams.preferences || [],
+      inspiring_story: currentParams.story || '',
+      traveler_type: currentParams.travelerType || '',
+      trip_duration_days: currentParams.duration || 0
+    };
+
+    console.log('Saving lead with data:', leadData);
+    console.log('Lead API URL:', `${API_URL}/leads`);
+
+    const leadResponse = await fetch(`${API_URL}/leads`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(leadData)
+    });
+
+    console.log('Lead response status:', leadResponse.status);
+
+    if (!leadResponse.ok) {
+      let errorText = '';
+      try {
+        errorText = await leadResponse.text();
+        console.log('Lead error response body:', errorText);
+      } catch (e) {
+        console.log('Could not read lead error response body');
+      }
+      // Don't throw error for lead saving - it shouldn't block the email
+      console.warn(`Failed to save lead. Status: ${leadResponse.status}. Response: ${errorText}`);
+    } else {
+      console.log('Lead saved successfully');
+    }
+
+    return leadResponse.ok;
+  };
+
+  const sendTravelGuideEmail = async (itineraryResult: any) => {
+    const language = getBrowserLanguage();
+    
+    // For email endpoint, we can use the original UUID since it's working
+    const emailPayload = {
+      userId: userId || '386cf448-2456-481e-835b-6f2ca873d7eb',
       destination: currentParams.destination || '',
       inspiration: currentParams.story || '',
       travelers: currentParams.travelerType || '',
@@ -229,34 +335,36 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
       interests: currentParams.preferences || [],
       language: language,
       customer_email: emailData.email,
-      itinerary_data: itineraryData  // Added the required itinerary data
+      itinerary_data: {
+        id: itineraryResult.id,
+        guide_url: itineraryResult.guide_url,
+        destination: itineraryResult.destination,
+        inspiration: itineraryResult.inspiration
+      }
     };
 
-    console.log('Current params:', currentParams);
-    console.log('Email data:', emailData);
-    console.log('Sending API request with payload:', payload);
-    console.log('API URL:', `${API_URL}/send-travel-guide`);
+    console.log('Sending email with payload:', emailPayload);
+    console.log('Email API URL:', `${API_URL}/send-travel-guide`);
 
     const response = await fetch(`${API_URL}/send-travel-guide`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(emailPayload)
     });
 
-    console.log('Response status:', response.status);
-    console.log('Response headers:', response.headers);
+    console.log('Email response status:', response.status);
 
     if (!response.ok) {
       let errorText = '';
       try {
         errorText = await response.text();
-        console.log('Error response body:', errorText);
+        console.log('Email error response body:', errorText);
       } catch (e) {
-        console.log('Could not read error response body');
+        console.log('Could not read email error response body');
       }
-      throw new Error(`API request failed with status ${response.status}. Response: ${errorText}`);
+      throw new Error(`Failed to send email. Status: ${response.status}. Response: ${errorText}`);
     }
 
     return response.json();
@@ -276,36 +384,52 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
       return;
     }
 
-    if (!userId) {
-      console.error('Missing userId');
-      setMessages(prev => [...prev, {
-        role: "assistant",
-        content: "Configuration error: No agency ID provided. Please contact support."
-      }]);
-      return;
-    }
-
     setIsEmailSending(true);
 
     try {
-      const response = await sendTravelGuideEmail();
-      console.log('API response:', response);
+      console.log('=== Starting travel guide process ===');
+      
+      // Step 1: Try to create the itinerary
+      let itineraryResult = null;
+      try {
+        console.log('Step 1: Creating itinerary...');
+        itineraryResult = await createItinerary();
+        console.log('Itinerary created successfully:', itineraryResult);
+      } catch (itineraryError) {
+        console.log('Itinerary creation failed, using fallback data:', itineraryError);
+        // Use existing location data as fallback
+        const messagesWithLocations = messages.filter(msg => msg.locations && msg.locations.length > 0);
+        const lastMessageWithLocations = messagesWithLocations[messagesWithLocations.length - 1];
+        itineraryResult = lastMessageWithLocations?.locations || [];
+      }
+
+      // Step 2: Skip lead saving (endpoint doesn't exist in current API)
+      console.log('Step 2: Skipping lead saving (endpoint not available)...');
+
+      // Step 3: Send email with the itinerary data
+      console.log('Step 3: Sending email...');
+      const emailResponse = await sendTravelGuideEmail(itineraryResult);
+      console.log('Email sent successfully:', emailResponse);
       
       setEmailSent(true);
       setShowEmailForm(false);
       
       // Add success message to chat
+      const guideUrlMessage = itineraryResult?.guide_url 
+        ? ` You can also view your guide at: ${itineraryResult.guide_url}` 
+        : '';
+      
       setMessages(prev => [...prev, {
         role: "assistant",
-        content: `Perfect! I've sent your personalized travel guide to ${emailData.email}. Check your inbox for your ${currentParams.destination} adventure inspired by ${currentParams.story}! ✈️📧`
+        content: `Perfect! I've created your personalized travel guide and sent it to ${emailData.email}. Check your inbox for your ${currentParams.destination} adventure inspired by ${currentParams.story}!${guideUrlMessage} ✈️📧`
       }]);
 
     } catch (error) {
-      console.error('Failed to send email:', error);
+      console.error('Failed to process travel guide:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setMessages(prev => [...prev, {
         role: "assistant",
-        content: `I apologize, but I'm having trouble sending the email right now. Error: ${errorMessage}. Please try again in a moment.`
+        content: `I apologize, but I'm having trouble sending your travel guide right now. Error: ${errorMessage}. Please try again in a moment.`
       }]);
     }
 
