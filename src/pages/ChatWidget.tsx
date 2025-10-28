@@ -8,6 +8,7 @@ import MapComponent from "@/components/chat/MapComponent";
 import { PaymentModal } from "@/components/chat/PaymentModal";
 import PageTransition from "@/components/PageTransition";
 import { getChatResponse, type StoryLocation, type TravelParameters } from "@/services/openai";
+import { detectUserLanguage, getTranslation, getLanguageForAPI, type SupportedLanguage } from "@/i18n/languages";
 
 type Message = {
   role: "assistant" | "user";
@@ -48,17 +49,20 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [emailData, setEmailData] = useState({ name: "", email: "" });
+  
+  // Language detection and management
+  const [userLanguage, setUserLanguage] = useState<SupportedLanguage>('en');
+  
+  // Initialize language detection on component mount
+  useEffect(() => {
+    const detectedLang = detectUserLanguage();
+    setUserLanguage(detectedLang);
+    console.log('🌍 Detected user language:', detectedLang);
+  }, []);
   const [isEmailSending, setIsEmailSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
 
-  // Get browser language or default to English
-  const getBrowserLanguage = (): string => {
-    if (typeof window !== 'undefined' && window.navigator) {
-      const language = window.navigator.language || (window.navigator as any).userLanguage;
-      return language ? language.split('-')[0] : 'en';
-    }
-    return 'en';
-  };
+
 
   const handleFirstSubmit = async (message: string) => {
     setShowLanding(false);
@@ -213,7 +217,7 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
   };
 
   const createItinerary = async () => {
-    const language = getBrowserLanguage();
+    const language = getLanguageForAPI(userLanguage);
     
     // API expects numeric userId (bigint), not UUID
     // Convert UUID to a numeric ID or use a test numeric ID
@@ -393,14 +397,11 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
           </div>
           
           <h1 className="text-4xl md:text-6xl font-bold text-white leading-tight">
-            Travel like in your
-            <span className="block mt-2">
-              favorite story
-            </span>
+            {getTranslation('landingTitle', userLanguage)}
           </h1>
           
           <p className="text-lg md:text-xl text-white/80 max-w-2xl mx-auto">
-            Design your perfect journey inspired by your favorite books, movies, and TV shows
+            {getTranslation('landingSubtitle', userLanguage)}
           </p>
 
           {/* Chat-like Input Box */}

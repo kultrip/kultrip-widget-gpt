@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kultrip Widget Example</title>
+    <title>Kultrip Widget Test - Production</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -27,47 +27,47 @@
             color: #333;
             margin-bottom: 30px;
         }
-        .instructions {
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .code-block {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
+        .status {
+            background: #e7f3ff;
+            border: 1px solid #b8daff;
             border-radius: 4px;
             padding: 15px;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            margin: 10px 0;
-            overflow-x: auto;
+            margin: 20px 0;
         }
     </style>
 </head>
 <body>
+    <div class="container">
+        <h1>🚀 Kultrip Widget - Production Test</h1>
+        
+        <div class="status">
+            <h3>✅ Production Deployment Status:</h3>
+            <p><strong>Widget URL:</strong> https://kultrip.com/widget/</p>
+            <p><strong>Features:</strong> Multi-language (EN/ES/PT), AI Travel Planning, Supabase Integration</p>
+            <p><strong>Test Agency ID:</strong> 386cf448-2456-481e-835b-6f2ca873d7eb</p>
+        </div>
+
         <div class="widget-container">
             <div id="kultrip-widget" style="width: 100%; height: 600px;"></div>
         </div>
     </div>
 
-    <!-- Widget CSS and JS (Replace with your server URLs) -->
-    <link rel="stylesheet" href="./dist/kultrip-widget.css">
-    <script src="./dist/kultrip-widget.umd.js"></script>
+    <!-- Production Kultrip Widget -->
+    <link rel="stylesheet" href="https://kultrip.com/widget/kultrip-widget.css">
+    <script src="https://kultrip.com/widget/kultrip-widget.umd.js"></script>
     
     <!-- Initialize the widget -->
     <script>
         // Wait for the widget to load
         window.addEventListener('load', function() {
             if (window.KultripWidget) {
-                // Using your actual Supabase agency ID
+                // Using production agency ID
                 const widget = window.KultripWidget.init('kultrip-widget', {
                     userId: '386cf448-2456-481e-835b-6f2ca873d7eb'
                 });
-                console.log('Kultrip Widget initialized successfully');
+                console.log('✅ Kultrip Widget initialized successfully in production!');
             } else {
-                console.error('Kultrip Widget not found');
+                console.error('❌ Kultrip Widget not found - check file loading');
             }
         });
     </script>
