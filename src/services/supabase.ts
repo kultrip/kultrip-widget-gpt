@@ -277,25 +277,31 @@ export interface LeadData {
 
 export async function saveLead(leadData: LeadData): Promise<{ success: boolean; error?: string; id?: string }> {
   try {
-    console.log('💾 Saving lead to Supabase:', leadData);
+    console.log('💾 Saving lead to Supabase for agency:', leadData.agency_id);
+    console.log('� Lead data:', leadData);
     
     const insertPayload = {
       agency_id: leadData.agency_id,
-      name: leadData.traveler_name,
-      email: leadData.traveler_email,
-      phone: leadData.traveler_phone,
+      traveler_name: leadData.traveler_name,
+      traveler_email: leadData.traveler_email,
+      traveler_phone: leadData.traveler_phone,
       destination: leadData.destination,
-      story: leadData.inspiring_story,
-      preferences: leadData.interests.join(','),
-      whatsapp: leadData.traveler_phone || '',
-      language: 'en', // Default to English
-      travelerType: leadData.traveler_type,
+      inspiring_story: leadData.inspiring_story,
+      interests: leadData.interests, // Keep as array, not joined string
+      travel_style: leadData.travel_style,
+      traveler_type: leadData.traveler_type,
+      trip_duration_days: leadData.trip_duration_days,
       created_at: new Date().toISOString()
     };
     
     console.log('💾 Insert payload prepared:', insertPayload);
     
-    const { data, error } = await supabase
+    // For widgets, we prefer admin client (service role) to bypass RLS
+    // If not available, fall back to regular client (requires RLS policy)
+    const clientToUse = supabaseAdmin || supabase;
+    console.log('💾 Using Supabase client:', supabaseAdmin ? 'admin (service role - bypasses RLS)' : 'regular (anon - needs RLS policy)');
+    
+    const { data, error } = await clientToUse
       .from('leads')
       .insert([insertPayload])
       .select()
@@ -308,10 +314,31 @@ export async function saveLead(leadData: LeadData): Promise<{ success: boolean; 
       console.error('❌ Error code:', error.code);
       console.error('❌ Error details:', error.details);
       console.error('❌ Error hint:', error.hint);
+      
+      // If it's an RLS error, provide specific widget guidance
+      if (error.code === '42501') {
+        console.log('🛡️ Widget RLS Policy Issue - Anonymous users cannot insert');
+        console.log('');
+        console.log('� SOLUTION 1 (Recommended): Create RLS policy for widget anonymous inserts:');
+        console.log('   CREATE POLICY "Allow widget anonymous inserts" ON leads FOR INSERT TO anon WITH CHECK (true);');
+        console.log('');
+        console.log('� SOLUTION 2: Add service role key to .env:');
+        console.log('   VITE_SUPABASE_SERVICE_KEY=eyJhb...your_service_role_key');
+        console.log('');
+        console.log('🔧 SOLUTION 3 (Temporary): Disable RLS:');
+        console.log('   ALTER TABLE leads DISABLE ROW LEVEL SECURITY;');
+        console.log('');
+        return { 
+          success: false, 
+          error: `Widget needs RLS policy for anonymous inserts. Agency: ${leadData.agency_id}. ${error.message} (Code: ${error.code})` 
+        };
+      }
+      
       return { success: false, error: `${error.message} (Code: ${error.code})` };
     }
 
-    console.log('✅ Lead saved successfully to Supabase:', data);
+    console.log('✅ Lead saved successfully for agency:', leadData.agency_id);
+    console.log('✅ Lead ID:', data?.id);
     return { success: true, id: data?.id };
 
   } catch (error) {

@@ -37,7 +37,6 @@ interface ChatWidgetProps {
 }
 
 const API_URL = "https://kultrip-api-vzkhjko4aa-no.a.run.app/api";
-const KULTRIP_AGENCY_ID = "kultrip-official-000-000-000-kultrip"; // Dedicated KULTRIP agency ID
 
 const ChatWidget = ({ userId }: ChatWidgetProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -280,7 +279,7 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
 
   const saveLeadToSupabase = async () => {
     const leadData = {
-      agency_id: KULTRIP_AGENCY_ID, // KULTRIP's own agency ID
+      agency_id: userId || '386cf448-2456-481e-835b-6f2ca873d7eb', // Use provided userId or default agency ID
       traveler_name: emailData.name,
       traveler_email: emailData.email,
       traveler_phone: null,
