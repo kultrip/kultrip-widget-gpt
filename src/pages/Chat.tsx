@@ -48,6 +48,51 @@ const Chat = () => {
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
+  // Agency ID for KULTRIP
+  const KULTRIP_AGENCY_ID = 'cc42368b-b2fb-43eb-a106-d54af47b84e6';
+
+  const handlePaymentSuccess = async (userData: { name: string; email: string }) => {
+    console.log('💳 Payment successful, saving lead for:', userData);
+
+    const leadData = {
+      agency_id: KULTRIP_AGENCY_ID,
+      traveler_name: userData.name,
+      traveler_email: userData.email,
+      traveler_phone: null,
+      destination: conversationState.destination || '',
+      travel_style: null,
+      interests: conversationState.preferences || [],
+      inspiring_story: conversationState.story || '',
+      traveler_type: conversationState.travelerType || '',
+      trip_duration_days: conversationState.duration || 0
+    };
+
+    try {
+      // Import the saveLead function dynamically
+      const { saveLead, sendAgencyNotification } = await import('@/services/supabase');
+      
+      // Save lead to Supabase
+      console.log('💾 Saving lead to Supabase from Chat:', leadData);
+      const saveResult = await saveLead(leadData);
+      
+      if (saveResult.success) {
+        console.log('✅ Lead saved to Supabase successfully from Chat');
+        
+        // Send agency notification email
+        const notificationResult = await sendAgencyNotification(leadData);
+        if (notificationResult.success) {
+          console.log('✅ Agency notification sent successfully from Chat');
+        } else {
+          console.warn('⚠️ Failed to send agency notification from Chat:', notificationResult.error);
+        }
+      } else {
+        console.warn('⚠️ Failed to save lead to Supabase from Chat:', saveResult.error);
+      }
+    } catch (error) {
+      console.error('❌ Exception in lead saving from Chat:', error);
+    }
+  };
+
   useEffect(() => {
     const chatWindow = document.querySelector('.chat-scroll');
     if (chatWindow) chatWindow.scrollTop = chatWindow.scrollHeight;
@@ -471,6 +516,7 @@ const Chat = () => {
           duration: conversationState.duration,
           preferences: conversationState.preferences || []
         }}
+        onPaymentSuccess={handlePaymentSuccess}
       />
       </div>
     </PageTransition>

@@ -260,3 +260,103 @@ export function subscribeToLeads(callback: (leads: Lead[]) => void) {
 
   return subscription;
 }
+
+// Save a new lead to Supabase
+export interface LeadData {
+  agency_id: string;
+  traveler_name: string;
+  traveler_email: string;
+  traveler_phone?: string | null;
+  destination: string;
+  travel_style?: string | null;
+  interests: string[];
+  inspiring_story: string;
+  traveler_type: string;
+  trip_duration_days: number;
+}
+
+export async function saveLead(leadData: LeadData): Promise<{ success: boolean; error?: string; id?: string }> {
+  try {
+    console.log('💾 Saving lead to Supabase:', leadData);
+    
+    const insertPayload = {
+      agency_id: leadData.agency_id,
+      name: leadData.traveler_name,
+      email: leadData.traveler_email,
+      phone: leadData.traveler_phone,
+      destination: leadData.destination,
+      story: leadData.inspiring_story,
+      preferences: leadData.interests.join(','),
+      whatsapp: leadData.traveler_phone || '',
+      language: 'en', // Default to English
+      travelerType: leadData.traveler_type,
+      created_at: new Date().toISOString()
+    };
+    
+    console.log('💾 Insert payload prepared:', insertPayload);
+    
+    const { data, error } = await supabase
+      .from('leads')
+      .insert([insertPayload])
+      .select()
+      .single();
+
+    console.log('💾 Supabase response - data:', data, 'error:', error);
+
+    if (error) {
+      console.error('❌ Error saving lead to Supabase:', error);
+      console.error('❌ Error code:', error.code);
+      console.error('❌ Error details:', error.details);
+      console.error('❌ Error hint:', error.hint);
+      return { success: false, error: `${error.message} (Code: ${error.code})` };
+    }
+
+    console.log('✅ Lead saved successfully to Supabase:', data);
+    return { success: true, id: data?.id };
+
+  } catch (error) {
+    console.error('❌ Exception saving lead:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+// Send agency notification email about new lead
+export async function sendAgencyNotification(leadData: LeadData): Promise<{ success: boolean; error?: string }> {
+  try {
+    const API_URL = 'http://127.0.0.1:8088';
+    
+    const notificationPayload = {
+      agency_id: leadData.agency_id,
+      agency_email: "charles.santana@kultrip.com", // Agency notification email
+      customer_name: leadData.traveler_name,
+      customer_email: leadData.traveler_email,
+      destination: leadData.destination,
+      inspiration: leadData.inspiring_story,
+      message: `New travel lead: ${leadData.traveler_name} is interested in a ${leadData.trip_duration_days}-day ${leadData.traveler_type} trip to ${leadData.destination}, inspired by ${leadData.inspiring_story}. Interests: ${leadData.interests.join(', ')}`
+    };
+
+    console.log('📧 Sending agency notification:', notificationPayload);
+
+    const response = await fetch(`${API_URL}/api/send-agency-notification`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(notificationPayload)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Agency notification failed:', response.status, errorText);
+      return { success: false, error: `API error: ${response.status}` };
+    }
+
+    const result = await response.json();
+    console.log('✅ Agency notification sent:', result);
+    return { success: true };
+
+  } catch (error) {
+    console.error('❌ Exception sending agency notification:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}

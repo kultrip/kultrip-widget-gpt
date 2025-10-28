@@ -229,7 +229,7 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
     
     // Build query parameters matching the working curl format
     // Use 3 days max to avoid JSON parsing issues with long responses
-    // DON'T include email parameter here to avoid double emails - we'll send email separately
+    // Include email parameter - this endpoint will create itinerary AND send the themed email
     const safeDuration = Math.min(currentParams.duration || 3, 3);
     const queryParams = new URLSearchParams({
       userId: actualUserId,
@@ -238,8 +238,8 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
       travelers: currentParams.travelerType || '',
       duration: safeDuration.toString(),
       interests: (currentParams.preferences || []).slice(0, 2).join(','), // Limit to 2 interests to avoid long responses
-      language: language
-      // NOTE: No email parameter here to prevent automatic email sending
+      language: language,
+      email: emailData.email // This will create itinerary AND send themed email
     });
 
     console.log('Step 1a: Creating itinerary with GET request to:', `${API_URL}/itinerary?${queryParams}`);
@@ -278,7 +278,7 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
     };
   };
 
-  const saveLead = async () => {
+  const saveLeadToSupabase = async () => {
     const leadData = {
       agency_id: KULTRIP_AGENCY_ID, // KULTRIP's own agency ID
       traveler_name: emailData.name,
@@ -292,83 +292,38 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
       trip_duration_days: currentParams.duration || 0
     };
 
-    console.log('Saving lead with data:', leadData);
-    console.log('Lead API URL:', `${API_URL}/leads`);
+    console.log('💾 Saving lead to Supabase:', leadData);
 
-    const leadResponse = await fetch(`${API_URL}/leads`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(leadData)
-    });
-
-    console.log('Lead response status:', leadResponse.status);
-
-    if (!leadResponse.ok) {
-      let errorText = '';
-      try {
-        errorText = await leadResponse.text();
-        console.log('Lead error response body:', errorText);
-      } catch (e) {
-        console.log('Could not read lead error response body');
-      }
-      // Don't throw error for lead saving - it shouldn't block the email
-      console.warn(`Failed to save lead. Status: ${leadResponse.status}. Response: ${errorText}`);
-    } else {
-      console.log('Lead saved successfully');
-    }
-
-    return leadResponse.ok;
-  };
-
-  const sendTravelGuideEmail = async (itineraryResult: any) => {
-    const language = getBrowserLanguage();
+    // Import the saveLead function dynamically to avoid circular dependencies
+    const { saveLead, sendAgencyNotification } = await import('@/services/supabase');
     
-    // For email endpoint, we can use the original UUID since it's working
-    const emailPayload = {
-      userId: userId || '386cf448-2456-481e-835b-6f2ca873d7eb',
-      destination: currentParams.destination || '',
-      inspiration: currentParams.story || '',
-      travelers: currentParams.travelerType || '',
-      duration: currentParams.duration || 0,
-      interests: currentParams.preferences || [],
-      language: language,
-      customer_email: emailData.email,
-      itinerary_data: {
-        id: itineraryResult.id,
-        guide_url: itineraryResult.guide_url,
-        destination: itineraryResult.destination,
-        inspiration: itineraryResult.inspiration
+    // Save lead to Supabase
+    console.log('🔍 About to save lead with data:', leadData);
+    const saveResult = await saveLead(leadData);
+    console.log('🔍 Save result received:', saveResult);
+    
+    if (saveResult.success) {
+      console.log('✅ Lead saved to Supabase successfully with ID:', saveResult.id);
+      
+      // Send agency notification email
+      console.log('📧 Sending agency notification...');
+      const notificationResult = await sendAgencyNotification(leadData);
+      console.log('📧 Agency notification result:', notificationResult);
+      
+      if (notificationResult.success) {
+        console.log('✅ Agency notification sent successfully');
+      } else {
+        console.warn('⚠️ Failed to send agency notification:', notificationResult.error);
       }
-    };
-
-    console.log('Sending email with payload:', emailPayload);
-    console.log('Email API URL:', `${API_URL}/send-travel-guide`);
-
-    const response = await fetch(`${API_URL}/send-travel-guide`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(emailPayload)
-    });
-
-    console.log('Email response status:', response.status);
-
-    if (!response.ok) {
-      let errorText = '';
-      try {
-        errorText = await response.text();
-        console.log('Email error response body:', errorText);
-      } catch (e) {
-        console.log('Could not read email error response body');
-      }
-      throw new Error(`Failed to send email. Status: ${response.status}. Response: ${errorText}`);
+    } else {
+      console.error('❌ Failed to save lead to Supabase:', saveResult.error);
+      console.error('❌ Full save result:', saveResult);
     }
 
-    return response.json();
+    return saveResult.success;
   };
+
+  // Removed sendTravelGuideEmail function - the itinerary endpoint handles email sending
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -389,27 +344,24 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
     try {
       console.log('=== Starting travel guide process ===');
       
-      // Step 1: Try to create the itinerary
-      let itineraryResult = null;
+      // Step 1: Save lead to Supabase and send agency notification
+      console.log('Step 1: Saving lead to Supabase...');
       try {
-        console.log('Step 1: Creating itinerary...');
-        itineraryResult = await createItinerary();
-        console.log('Itinerary created successfully:', itineraryResult);
-      } catch (itineraryError) {
-        console.log('Itinerary creation failed, using fallback data:', itineraryError);
-        // Use existing location data as fallback
-        const messagesWithLocations = messages.filter(msg => msg.locations && msg.locations.length > 0);
-        const lastMessageWithLocations = messagesWithLocations[messagesWithLocations.length - 1];
-        itineraryResult = lastMessageWithLocations?.locations || [];
+        await saveLeadToSupabase();
+      } catch (leadError) {
+        console.warn('⚠️ Lead saving failed (non-blocking):', leadError);
       }
 
-      // Step 2: Skip lead saving (endpoint doesn't exist in current API)
-      console.log('Step 2: Skipping lead saving (endpoint not available)...');
-
-      // Step 3: Send email with the itinerary data
-      console.log('Step 3: Sending email...');
-      const emailResponse = await sendTravelGuideEmail(itineraryResult);
-      console.log('Email sent successfully:', emailResponse);
+      // Step 2: Create itinerary and send email (single API call)
+      console.log('Step 2: Creating itinerary and sending email...');
+      let itineraryResult = null;
+      try {
+        itineraryResult = await createItinerary();
+        console.log('✅ Itinerary created and email sent:', itineraryResult);
+      } catch (itineraryError) {
+        console.error('❌ Itinerary creation failed:', itineraryError);
+        throw itineraryError;
+      }
       
       setEmailSent(true);
       setShowEmailForm(false);

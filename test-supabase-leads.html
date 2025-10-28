@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Leads Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+        #output { background: #f0f0f0; padding: 20px; margin: 20px 0; border-radius: 5px; }
+    </style>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Supabase Leads Table Test</h1>
+        
+        <button onclick="testLeadsTable()">Test Leads Table Structure</button>
+        <button onclick="testLeadInsertion()">Test Lead Insertion</button>
+        
+        <div id="output"></div>
+    </div>
+
+    <script>
+        // Initialize Supabase
+        const supabaseUrl = 'https://bqqhoilmsrbohwdmwrmu.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJxcWhvaWxtc3Jib2h3ZG13cm11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5NzgzMDksImV4cCI6MjA2MDU1NDMwOX0.FJ0AcYfIABkFVW88EetxtDXSGKnfx8JTtJfOUFEuH9c';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        function log(message) {
+            const output = document.getElementById('output');
+            output.innerHTML += '<p>' + JSON.stringify(message, null, 2) + '</p>';
+            console.log(message);
+        }
+
+        async function testLeadsTable() {
+            log('🔍 Testing leads table structure...');
+            
+            try {
+                // Try to fetch existing leads to see table structure
+                const { data, error } = await supabase
+                    .from('leads')
+                    .select('*')
+                    .limit(1);
+                
+                if (error) {
+                    log('❌ Error fetching leads: ' + error.message);
+                } else {
+                    log('✅ Leads table exists. Sample data:');
+                    log(data);
+                }
+                
+            } catch (err) {
+                log('❌ Exception: ' + err.message);
+            }
+        }
+
+        async function testLeadInsertion() {
+            log('🧪 Testing lead insertion...');
+            
+            const testLead = {
+                agency_id: 'cc42368b-b2fb-43eb-a106-d54af47b84e6',
+                name: 'Test User Widget',
+                email: 'test-widget@example.com',
+                phone: null,
+                destination: 'Paris',
+                story: 'Emily in Paris',
+                preferences: 'culture,food',
+                whatsapp: '',
+                language: 'en',
+                travelerType: 'solo',
+                created_at: new Date().toISOString()
+            };
+            
+            try {
+                const { data, error } = await supabase
+                    .from('leads')
+                    .insert([testLead])
+                    .select()
+                    .single();
+                
+                if (error) {
+                    log('❌ Insert error: ' + error.message);
+                    log('Error details: ' + JSON.stringify(error, null, 2));
+                } else {
+                    log('✅ Lead inserted successfully:');
+                    log(data);
+                }
+                
+            } catch (err) {
+                log('❌ Exception during insert: ' + err.message);
+            }
+        }
+    </script>
+</body>
+</html>
