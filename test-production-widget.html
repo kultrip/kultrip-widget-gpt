@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Kultrip Widget Test - Production Deployment</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .widget-container {
+            padding: 20px;
+            min-height: 600px;
+        }
+        .test-info {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        .status {
+            background: #d4edda;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Kultrip Widget - Production Test</h1>
+            <p>Testing the deployed widget from Firebase hosting</p>
+        </div>
+        
+        <div style="padding: 20px;">
+            <div class="status">
+                <h3>✅ Deployment Status:</h3>
+                <p><strong>Widget URL:</strong> https://kultrip-widget.web.app/</p>
+                <p><strong>JavaScript:</strong> https://kultrip-widget.web.app/kultrip-widget.umd.js (4.1MB)</p>
+                <p><strong>CSS:</strong> https://kultrip-widget.web.app/kultrip-widget.css (126KB)</p>
+                <p><strong>CORS:</strong> ✅ Enabled for cross-origin embedding</p>
+            </div>
+
+            <div class="test-info">
+                <strong>🧪 Testing Scenarios:</strong>
+                <ol>
+                    <li>Widget loads and displays the landing screen</li>
+                    <li>Chat functionality works with story-inspired travel planning</li>
+                    <li>Preference selection works properly</li>
+                    <li>Email form captures leads and sends to Supabase</li>
+                    <li>Agency notifications are sent properly</li>
+                </ol>
+            </div>
+
+            <div class="widget-container">
+                <div id="kultrip-widget" style="width: 100%; height: 600px; border: 2px dashed #ddd; border-radius: 8px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Kultrip Widget from Production -->
+    <link rel="stylesheet" href="https://kultrip-widget.web.app/kultrip-widget.css">
+    <script src="https://kultrip-widget.web.app/kultrip-widget.umd.js"></script>
+    
+    <script>
+        console.log('🧪 Starting Kultrip Widget Production Test...');
+        
+        // Initialize the widget
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 DOM Content Loaded');
+            
+            if (window.KultripWidget) {
+                console.log('✅ Kultrip Widget found in window object');
+                
+                // Initialize with test agency ID
+                try {
+                    const widget = window.KultripWidget.init('kultrip-widget', {
+                        userId: '386cf448-2456-481e-835b-6f2ca873d7eb' // Test agency ID
+                    });
+                    console.log('🎉 Kultrip Widget initialized successfully!', widget);
+                } catch (error) {
+                    console.error('❌ Error initializing widget:', error);
+                }
+            } else {
+                console.error('❌ Kultrip Widget not found - check if files loaded correctly');
+                console.log('🔍 Available objects in window:', Object.keys(window).filter(key => key.includes('Kultrip') || key.includes('kultrip')));
+            }
+        });
+
+        // Test network requests
+        window.addEventListener('load', function() {
+            console.log('🌐 Page fully loaded - testing network requests...');
+            
+            // Test if CSS loaded
+            const cssLoaded = document.querySelector('link[href*="kultrip-widget.css"]');
+            console.log('🎨 CSS loaded:', cssLoaded ? '✅' : '❌');
+            
+            // Test if JS loaded
+            console.log('📦 JS widget object available:', window.KultripWidget ? '✅' : '❌');
+        });
+    </script>
+</body>
+</html>

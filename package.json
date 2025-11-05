@@ -8,6 +8,8 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "build:widget": "vite build --config vite.widget.config.ts",
+    "deploy": "./deploy.sh",
+    "deploy:firebase": "npm run build:widget && firebase deploy --only hosting",
     "lint": "eslint .",
     "preview": "vite preview"
   },

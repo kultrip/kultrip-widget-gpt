@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Kultrip Widget - Spanish</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .info {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .widget-container {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌍 Prueba del Widget Kultrip - Español</h1>
+        <div class="info">
+            <p><strong>Prueba de idioma:</strong> Este navegador está configurado en español (es). El widget debería:</p>
+            <ul>
+                <li>✅ Detectar automáticamente el idioma español</li>
+                <li>✅ Mostrar todo el texto en español</li>
+                <li>✅ Usar las traducciones españolas en formularios</li>
+                <li>✅ Pasar el idioma a la API para respuestas en español</li>
+            </ul>
+            <p><strong>Idioma del navegador:</strong> <span id="browser-lang">Cargando...</span></p>
+        </div>
+        
+        <div class="widget-container">
+            <div id="kultrip-widget-container"></div>
+        </div>
+    </div>
+
+    <script src="https://kultrip-widget.web.app/kultrip-widget.umd.js"></script>
+    <link rel="stylesheet" href="https://kultrip-widget.web.app/kultrip-widget.css">
+
+    <script>
+        // Display browser language
+        document.getElementById('browser-lang').textContent = navigator.language || navigator.languages?.[0] || 'Unknown';
+
+        // Initialize Kultrip Widget
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.KultripWidget) {
+                window.KultripWidget.init('kultrip-widget-container', {
+                    userId: 'TEST_SPANISH_USER'
+                });
+            } else {
+                document.getElementById('kultrip-widget-container').innerHTML = 
+                    '<div style="padding: 20px; text-align: center; color: #666;">Error: No se pudo cargar el widget Kultrip</div>';
+            }
+        });
+    </script>
+</body>
+</html>

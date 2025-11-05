@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Kultrip Widget Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .widget-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        #kultrip-widget {
+            width: 100%;
+            height: 800px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✨ Enhanced Kultrip Widget Demo</h1>
+            <p>Now with PreferenceCards, Story Suggestions, and Journey Preview!</p>
+        </div>
+        
+        <div class="widget-container">
+            <div id="kultrip-widget"></div>
+        </div>
+    </div>
+
+    <link rel="stylesheet" href="./dist/kultrip-widget.css">
+    <script src="./dist/kultrip-widget.umd.js"></script>
+    <script>
+        // Wait for the script to load completely
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                try {
+                    console.log('KultripWidget object:', window.KultripWidget);
+                    
+                    if (!window.KultripWidget) {
+                        console.error('❌ KultripWidget not found on window object');
+                        return;
+                    }
+                    
+                    if (!window.KultripWidget.init) {
+                        console.error('❌ KultripWidget.init not found');
+                        return;
+                    }
+                    
+                    // Initialize the enhanced widget
+                    const widget = window.KultripWidget.init('kultrip-widget', {
+                        userId: 'enhanced-demo-user'
+                    });
+                    
+                    console.log('✅ Enhanced Kultrip Widget initialized!', widget);
+                    console.log('Features:');
+                    console.log('✅ PreferenceCards with icons and categories');
+                    console.log('✅ Story suggestion cards (Harry Potter, Emily in Paris, etc.)');
+                    console.log('✅ Quick options for guided conversation');
+                    console.log('✅ Journey preview panel with itinerary');
+                    console.log('✅ Interactive map and activity cards');
+                    console.log('✅ Internationalization (EN/ES/PT)');
+                    console.log('✅ Supabase lead saving (singleton pattern)');
+                    
+                } catch (error) {
+                    console.error('❌ Widget initialization error:', error);
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html>

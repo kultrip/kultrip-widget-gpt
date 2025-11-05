@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Kultrip Widget</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .debug-info {
+            background: #fff;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        .widget-container {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #007acc;
+            border-radius: 8px;
+            background: white;
+            position: relative;
+        }
+        .widget-container::before {
+            content: 'Widget Container (600px height)';
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: #007acc;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .status {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .status.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .status.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .status.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <div class="debug-info">
+        <h1>🔧 Debug Kultrip Widget</h1>
+        
+        <div id="status-checks">
+            <div class="status info">🔄 Checking widget loading...</div>
+        </div>
+        
+        <p><strong>Browser Language:</strong> <span id="browser-lang"></span></p>
+        <p><strong>User Agent:</strong> <span id="user-agent"></span></p>
+    </div>
+    
+    <div class="widget-container" id="kultrip-widget-container">
+        <!-- Widget will load here -->
+    </div>
+
+    <!-- Load widget resources -->
+    <script>
+        console.log('🔍 Starting widget debug...');
+        
+        // Display browser info
+        document.getElementById('browser-lang').textContent = navigator.language || navigator.languages?.[0] || 'Unknown';
+        document.getElementById('user-agent').textContent = navigator.userAgent.substring(0, 100) + '...';
+        
+        function addStatus(message, type = 'info') {
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+            document.getElementById('status-checks').appendChild(statusDiv);
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        // Check if scripts load
+        function loadScript(src, callback) {
+            addStatus(`📦 Loading script: ${src}`, 'info');
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = () => {
+                addStatus(`✅ Script loaded: ${src}`, 'success');
+                callback();
+            };
+            script.onerror = () => {
+                addStatus(`❌ Failed to load script: ${src}`, 'error');
+            };
+            document.head.appendChild(script);
+        }
+        
+        function loadCSS(href) {
+            addStatus(`🎨 Loading CSS: ${href}`, 'info');
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = href;
+            link.onload = () => {
+                addStatus(`✅ CSS loaded: ${href}`, 'success');
+            };
+            link.onerror = () => {
+                addStatus(`❌ Failed to load CSS: ${href}`, 'error');
+            };
+            document.head.appendChild(link);
+        }
+        
+        // Load CSS first
+        loadCSS('https://kultrip-widget.web.app/kultrip-widget.css');
+        
+        // Load and initialize widget
+        loadScript('https://kultrip-widget.web.app/kultrip-widget.umd.js', function() {
+            setTimeout(() => {
+                addStatus('🔍 Checking for KultripWidget object...', 'info');
+                
+                if (typeof window.KultripWidget !== 'undefined') {
+                    addStatus('✅ KultripWidget object found!', 'success');
+                    addStatus('🚀 Initializing widget...', 'info');
+                    
+                    try {
+                        const widget = window.KultripWidget.init('kultrip-widget-container', {
+                            userId: 'DEBUG_TEST_USER'
+                        });
+                        
+                        if (widget) {
+                            addStatus('✅ Widget initialized successfully!', 'success');
+                        } else {
+                            addStatus('⚠️ Widget init returned undefined', 'error');
+                        }
+                        
+                        // Check if content appears
+                        setTimeout(() => {
+                            const container = document.getElementById('kultrip-widget-container');
+                            const hasContent = container && container.children.length > 0;
+                            
+                            if (hasContent) {
+                                addStatus('✅ Widget content rendered!', 'success');
+                            } else {
+                                addStatus('❌ No widget content found in container', 'error');
+                                addStatus(`Container HTML: ${container ? container.innerHTML.substring(0, 200) : 'null'}`, 'info');
+                            }
+                        }, 2000);
+                        
+                    } catch (error) {
+                        addStatus(`❌ Error initializing widget: ${error.message}`, 'error');
+                        console.error('Widget init error:', error);
+                    }
+                } else {
+                    addStatus('❌ KultripWidget object not found!', 'error');
+                    addStatus(`Available on window: ${Object.keys(window).filter(k => k.includes('ultrip')).join(', ') || 'none'}`, 'info');
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>

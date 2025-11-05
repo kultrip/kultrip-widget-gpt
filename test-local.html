@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Widget Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .test-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .widget-wrapper {
+            padding: 0;
+            height: 600px;
+            position: relative;
+            overflow: hidden;
+        }
+        #widget-container {
+            width: 100%;
+            height: 100%;
+        }
+        .debug-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-top: 1px solid #dee2e6;
+            font-size: 12px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="header">
+            <h1>🌍 Kultrip Widget - Local Test</h1>
+            <p>Testing locally built widget files</p>
+            <p><strong>Language:</strong> <span id="detected-lang">Detecting...</span></p>
+        </div>
+        
+        <div class="widget-wrapper">
+            <div id="widget-container"></div>
+        </div>
+        
+        <div class="debug-info">
+            <div>Status: <span id="status">Loading...</span></div>
+            <div>Widget Object: <span id="widget-status">Checking...</span></div>
+        </div>
+    </div>
+
+    <!-- Load local widget files -->
+    <link rel="stylesheet" href="./dist/kultrip-widget.css">
+    <script src="./dist/kultrip-widget.umd.js"></script>
+
+    <script>
+        console.log('🚀 Starting local widget test...');
+        
+        // Update status
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+            console.log('Status:', message);
+        }
+        
+        // Display detected language
+        const lang = navigator.language || navigator.languages?.[0] || 'unknown';
+        document.getElementById('detected-lang').textContent = lang + (lang.startsWith('es') ? ' (Spanish detected)' : ' (English default)');
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatus('DOM loaded, checking widget...');
+            
+            setTimeout(() => {
+                if (typeof window.KultripWidget !== 'undefined') {
+                    document.getElementById('widget-status').textContent = '✅ Found';
+                    updateStatus('Initializing widget...');
+                    
+                    try {
+                        const result = window.KultripWidget.init('widget-container', {
+                            userId: 'LOCAL_TEST_USER'
+                        });
+                        
+                        updateStatus(result ? 'Widget initialized!' : 'Widget init returned undefined');
+                        
+                        // Check if content rendered
+                        setTimeout(() => {
+                            const container = document.getElementById('widget-container');
+                            const hasContent = container && container.children.length > 0;
+                            updateStatus(hasContent ? '✅ Content rendered' : '❌ No content found');
+                            
+                            if (!hasContent) {
+                                console.log('Container contents:', container.innerHTML);
+                            }
+                        }, 1000);
+                        
+                    } catch (error) {
+                        updateStatus('Error: ' + error.message);
+                        console.error('Widget error:', error);
+                    }
+                } else {
+                    document.getElementById('widget-status').textContent = '❌ Not found';
+                    updateStatus('KultripWidget not found on window object');
+                    console.log('Available window properties containing "ultrip":', Object.keys(window).filter(k => k.toLowerCase().includes('ultrip')));
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>

@@ -8,7 +8,6 @@ import MapComponent from "@/components/chat/MapComponent";
 import { PaymentModal } from "@/components/chat/PaymentModal";
 import PageTransition from "@/components/PageTransition";
 import { getChatResponse, type StoryLocation, type TravelParameters } from "@/services/openai";
-import { detectUserLanguage, getTranslation, getLanguageForAPI, type SupportedLanguage } from "@/i18n/languages";
 
 type Message = {
   role: "assistant" | "user";
@@ -18,20 +17,92 @@ type Message = {
   showEmailCapture?: boolean;
 };
 
-const PREFERENCE_OPTIONS = [
-  "Museums and History",
-  "Food and Restaurants", 
-  "Arts and Culture",
-  "Nature and Outdoors",
-  "Photography Spots",
-  "Nightlife",
-  "Shopping",
-  "Wine Tastings",
-  "Budget-friendly",
-  "Luxury Experiences",
-  "Family-friendly",
-  "Romantic Experiences"
-];
+type SupportedLanguage = 'en' | 'es';
+
+// Language detection function
+function detectUserLanguage(): SupportedLanguage {
+  try {
+    const browserLang = navigator.language || navigator.languages?.[0] || 'en';
+    return browserLang.toLowerCase().startsWith('es') ? 'es' : 'en';
+  } catch {
+    return 'en';
+  }
+}
+
+// Translations
+const translations = {
+  en: {
+    landingTitle: "Travel like in your favorite story",
+    landingSubtitle: "Design your perfect journey inspired by your favorite books, movies, and TV shows",
+    landingPlaceholder: "Ask KultripGPT to create your story-inspired journey...",
+    preferencesTitle: "What interests you most?",
+    emailTitle: "Get your personalized travel guide",
+    emailSubtitle: "We'll send your custom itinerary to your email",
+    namePlaceholder: "Your name",
+    emailPlaceholder: "Your email",
+    submitButton: "Get My Travel Guide",
+    successModalTitle: "Great! Your personalized guide will arrive within a couple of minutes",
+    errorMissingData: "Sorry, it seems we're missing some travel information. Please restart the conversation.",
+    errorItinerary: "I apologize, but I'm having trouble sending your travel guide right now. Please try again in a moment.",
+    messagePlaceholder: "Continue your conversation...",
+    resetButton: "Reset"
+  },
+  es: {
+    landingTitle: "Viaja como en tu historia favorita",
+    landingSubtitle: "Diseña tu viaje perfecto inspirado en tus libros, películas y series favoritas",
+    landingPlaceholder: "Pide a KultripGPT que cree tu viaje inspirado en historias...",
+    preferencesTitle: "¿Qué te interesa más?",
+    emailTitle: "Obtén tu guía de viaje personalizada",
+    emailSubtitle: "Te enviaremos tu itinerario personalizado por email",
+    namePlaceholder: "Tu nombre",
+    emailPlaceholder: "Tu email",
+    submitButton: "Obtener Mi Guía de Viaje",
+    successModalTitle: "¡Genial! Tu guía personalizada llegará en un par de minutos",
+    errorMissingData: "Lo siento, parece que falta información del viaje. Por favor reinicia la conversación.",
+    errorItinerary: "Disculpa, tengo problemas enviando tu guía de viaje ahora. Por favor intenta de nuevo en un momento.",
+    messagePlaceholder: "Continúa tu conversación...",
+    resetButton: "Reiniciar"
+  }
+};
+
+function getTranslation(key: string, language: SupportedLanguage): string {
+  return translations[language]?.[key as keyof typeof translations.en] || translations.en[key as keyof typeof translations.en] || key;
+}
+
+function getLanguageForAPI(language: SupportedLanguage): string {
+  return language === 'es' ? 'spanish' : 'english';
+}
+
+const PREFERENCE_OPTIONS = {
+  en: [
+    "Museums and History",
+    "Food and Restaurants", 
+    "Arts and Culture",
+    "Nature and Outdoors",
+    "Photography Spots",
+    "Nightlife",
+    "Shopping",
+    "Wine Tastings",
+    "Budget-friendly",
+    "Luxury Experiences",
+    "Family-friendly",
+    "Romantic Experiences"
+  ],
+  es: [
+    "Museos e Historia",
+    "Comida y Restaurantes",
+    "Arte y Cultura",
+    "Naturaleza y Aire Libre",
+    "Lugares Fotogénicos",
+    "Vida Nocturna",
+    "Compras",
+    "Catas de Vino",
+    "Económico",
+    "Experiencias de Lujo",
+    "Para Familias",
+    "Experiencias Románticas"
+  ]
+};
 
 interface ChatWidgetProps {
   userId?: string;
@@ -61,6 +132,7 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
   }, []);
   const [isEmailSending, setIsEmailSending] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
 
 
@@ -326,7 +398,7 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
       console.error('Missing destination');
       setMessages(prev => [...prev, {
         role: "assistant",
-        content: "Sorry, it seems we're missing some travel information. Please restart the conversation."
+        content: getTranslation('errorMissingData', userLanguage)
       }]);
       return;
     }
@@ -358,22 +430,20 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
       setEmailSent(true);
       setShowEmailForm(false);
       
-      // Add success message to chat
-      const guideUrlMessage = itineraryResult?.guide_url 
-        ? ` You can also view your guide at: ${itineraryResult.guide_url}` 
-        : '';
+      // Show success modal
+      setShowSuccessModal(true);
       
-      setMessages(prev => [...prev, {
-        role: "assistant",
-        content: `Perfect! I've created your personalized travel guide and sent it to ${emailData.email}. Check your inbox for your ${currentParams.destination} adventure inspired by ${currentParams.story}!${guideUrlMessage} ✈️📧`
-      }]);
+      // Auto-close after 3 seconds
+      setTimeout(() => {
+        setShowSuccessModal(false);
+      }, 3000);
 
     } catch (error) {
       console.error('Failed to process travel guide:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setMessages(prev => [...prev, {
         role: "assistant",
-        content: `I apologize, but I'm having trouble sending your travel guide right now. Error: ${errorMessage}. Please try again in a moment.`
+        content: getTranslation('errorItinerary', userLanguage) + (errorMessage ? ` Error: ${errorMessage}` : '')
       }]);
     }
 
@@ -417,7 +487,7 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
                 <div className="flex items-center gap-4">
                   <Input
                     type="text"
-                    placeholder="Ask KultripGPT to create your story-inspired journey..."
+                    placeholder={getTranslation('landingPlaceholder', userLanguage)}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     className="flex-1 border-0 bg-transparent text-lg focus-visible:ring-0 focus-visible:ring-offset-0"
@@ -485,7 +555,7 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
           <div className="bg-gray-50 rounded-lg p-6 mr-12">
             <h4 className="font-semibold text-gray-900 mb-4">What interests you most? (Select all that apply)</h4>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-              {PREFERENCE_OPTIONS.map((preference) => (
+              {PREFERENCE_OPTIONS[userLanguage].map((preference) => (
                 <Button
                   key={preference}
                   variant={selectedPreferences.includes(preference) ? "default" : "outline"}
@@ -584,7 +654,7 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
                 className="text-gray-600 hover:text-gray-900"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Reset
+                {getTranslation('resetButton', userLanguage)}
               </Button>
             </div>
           </div>
@@ -615,7 +685,7 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
                   <Input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Continue your conversation..."
+                    placeholder={getTranslation('messagePlaceholder', userLanguage)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSend()}
                     className="flex-1 bg-white border-gray-200 focus:border-purple-500 focus:ring-purple-500"
                     disabled={isLoading}
@@ -648,12 +718,12 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
               <form onSubmit={handleEmailSubmit} className="space-y-4">
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                    Your Name
+                    {getTranslation('namePlaceholder', userLanguage)}
                   </label>
                   <Input
                     id="name"
                     type="text"
-                    placeholder="Enter your name"
+                    placeholder={getTranslation('namePlaceholder', userLanguage)}
                     value={emailData.name}
                     onChange={(e) => setEmailData(prev => ({ ...prev, name: e.target.value }))}
                     className="w-full"
@@ -664,12 +734,12 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
 
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address
+                    {getTranslation('emailPlaceholder', userLanguage)}
                   </label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="Enter your email"
+                    placeholder={getTranslation('emailPlaceholder', userLanguage)}
                     value={emailData.email}
                     onChange={(e) => setEmailData(prev => ({ ...prev, email: e.target.value }))}
                     className="w-full"
@@ -692,7 +762,7 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
                     ) : (
                       <>
                         <Send className="w-4 h-4 mr-2" />
-                        Send Guide
+                        {getTranslation('submitButton', userLanguage)}
                       </>
                     )}
                   </Button>
@@ -721,6 +791,28 @@ const ChatWidget = ({ userId }: ChatWidgetProps) => {
             preferences: currentParams.preferences || []
           }}
         />
+
+        {/* Success Modal */}
+        {showSuccessModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-8 max-w-md mx-4 text-center shadow-xl">
+              <div className="mb-4">
+                <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">{getTranslation('successModalTitle', userLanguage)}</h3>
+              <p className="text-gray-600 mb-4">
+                {userLanguage === 'es' 
+                  ? `Tu guía de viaje personalizada ha sido enviada a` 
+                  : `Your personalized travel guide has been sent to`} <strong>{emailData.email}</strong>.
+              </p>
+              <p className="text-sm text-gray-500">
+                {userLanguage === 'es' 
+                  ? 'Llegará a tu bandeja de entrada en un par de minutos.' 
+                  : 'It will arrive in your inbox within a couple of minutes.'}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </PageTransition>
   );
