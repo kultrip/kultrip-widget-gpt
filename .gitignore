@@ -78,3 +78,9 @@ temp/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Firebase credentials
+*.json
+firebase-adminsdk-*.json
+kultrip-*.json
+*.serviceAccount.json
