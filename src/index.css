@@ -127,4 +127,54 @@ All colors MUST be HSL.
   .transition-smooth {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
+
+  /* Custom elegant scrollbar for chat */
+  .chat-scroll {
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(203, 213, 225, 0.8) rgba(241, 245, 249, 0.3) !important;
+  }
+
+  .chat-scroll::-webkit-scrollbar {
+    width: 6px !important;
+  }
+
+  .chat-scroll::-webkit-scrollbar-track {
+    background: rgba(241, 245, 249, 0.3) !important;
+    border-radius: 10px !important;
+  }
+
+  .chat-scroll::-webkit-scrollbar-thumb {
+    background: rgba(203, 213, 225, 0.8) !important;
+    border-radius: 10px !important;
+    transition: background-color 0.2s ease !important;
+  }
+
+  .chat-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.9) !important;
+  }
+
+  /* Additional fallback for widget context */
+  div[class*="chat-scroll"] {
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(203, 213, 225, 0.8) rgba(241, 245, 249, 0.3) !important;
+  }
+
+  div[class*="chat-scroll"]::-webkit-scrollbar {
+    width: 6px !important;
+  }
+
+  div[class*="chat-scroll"]::-webkit-scrollbar-track {
+    background: rgba(241, 245, 249, 0.3) !important;
+    border-radius: 10px !important;
+  }
+
+  div[class*="chat-scroll"]::-webkit-scrollbar-thumb {
+    background: rgba(203, 213, 225, 0.8) !important;
+    border-radius: 10px !important;
+    transition: background-color 0.2s ease !important;
+  }
+
+  div[class*="chat-scroll"]::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.9) !important;
+  }
 }

@@ -21,7 +21,7 @@ const WidgetApp = ({ userId }: WidgetAppProps) => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <div style={{ width: '100%', height: '100%', background: 'red', minHeight: '600px' }}>
+        <div style={{ width: '100%', background: 'white' }}>
           <ChatWidget userId={userId} />
         </div>
       </TooltipProvider>

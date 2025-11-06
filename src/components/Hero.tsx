@@ -57,21 +57,6 @@ const Hero = ({ onSubmit }: { onSubmit?: (message: string) => void }) => {
               </div>
             </form>
           </div>
-
-          <div className="pt-8 flex flex-wrap items-center justify-center gap-8 text-sm text-white/70">
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-white/90"></div>
-              <span>AI-Generated Guides</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-white/90"></div>
-              <span>Real Activities & Maps</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-white/90"></div>
-              <span>Cultural Insights</span>
-            </div>
-          </div>
         </div>
       </div>
     </section>

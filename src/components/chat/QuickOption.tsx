@@ -4,15 +4,17 @@ interface QuickOptionProps {
   label: string;
   onClick: () => void;
   variant?: "default" | "outline";
+  disabled?: boolean;
 }
 
-const QuickOption = ({ label, onClick, variant = "outline" }: QuickOptionProps) => {
+const QuickOption = ({ label, onClick, variant = "outline", disabled = false }: QuickOptionProps) => {
   return (
     <Button
       variant={variant}
       size="sm"
       onClick={onClick}
-      className="rounded-full"
+      disabled={disabled}
+      className={`rounded-full ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
       {label}
     </Button>

@@ -17,10 +17,9 @@ interface PaymentModalProps {
     duration?: number;
     preferences: string[];
   };
-  onPaymentSuccess?: (userData: { name: string; email: string }) => void;
 }
 
-export function PaymentModal({ isOpen, onClose, destinationInfo, onPaymentSuccess }: PaymentModalProps) {
+export function PaymentModal({ isOpen, onClose, destinationInfo }: PaymentModalProps) {
   const [currentStep, setCurrentStep] = useState<'preview' | 'details' | 'payment' | 'success'>('preview');
   const [formData, setFormData] = useState({
     name: '',
@@ -30,13 +29,7 @@ export function PaymentModal({ isOpen, onClose, destinationInfo, onPaymentSucces
   const handleNext = () => {
     if (currentStep === 'preview') setCurrentStep('details');
     else if (currentStep === 'details') setCurrentStep('payment');
-    else if (currentStep === 'payment') {
-      // When payment is successful, trigger the callback to save lead
-      setCurrentStep('success');
-      if (onPaymentSuccess) {
-        onPaymentSuccess(formData);
-      }
-    }
+    else if (currentStep === 'payment') setCurrentStep('success');
   };
 
   const handleInputChange = (field: string, value: string) => {
